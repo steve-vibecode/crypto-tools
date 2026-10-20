@@ -298,7 +298,16 @@
   <section id="panel-sb" role="tabpanel" aria-labelledby="tab-sb" hidden>
     <p class="panel-intro">Test a rule-based strategy on past candles. The tool opens and closes trades whenever your rules say so, then shows how the strategy would have done.</p>
     <form id="sbForm" novalidate>
-      <h3 class="sect first">Market and period</h3>
+      <div class="field">
+        <span class="label" id="sbModeLabel">Strategy type</span>
+        <div class="seg two" role="radiogroup" aria-labelledby="sbModeLabel">
+          <label><input type="radio" name="sbMode" value="signal" checked><span>Signal rules</span></label>
+          <label><input type="radio" name="sbMode" value="grid"><span>Grid bot</span></label>
+        </div>
+        <span class="hint" id="sbModeHint"></span>
+      </div>
+
+      <h3 class="sect">Market and period</h3>
       <div class="fields" id="sbFields"></div>
       <div class="grid3">
         <div class="field">
@@ -322,7 +331,17 @@
       </div>
       <span class="hint">Dates are in UTC+8, and the end date is included. Smaller timeframes over long periods need many candles and take longer to download.</span>
 
+      <div class="fields" data-mode="signal">
       <h3 class="sect">Entry rule</h3>
+      <div class="field">
+        <label for="sbPreset">Start from a preset</label>
+        <select id="sbPreset">
+          <option value="">Custom settings</option>
+          <option value="bbmr">Bollinger mean reversion (daily)</option>
+          <option value="scalp">Scalping with small targets</option>
+        </select>
+        <span class="hint" id="sbPresetHint">Pick a preset to fill in the settings below. You can change anything afterwards.</span>
+      </div>
       <div class="field">
         <span class="label" id="sbDirLabel">Direction</span>
         <div class="seg" role="radiogroup" aria-labelledby="sbDirLabel">
@@ -342,20 +361,20 @@
         <span class="hint" id="sbRuleHint"></span>
       </div>
       <div class="grid3 keep" data-rule="ema">
-        <div class="field"><label for="sbEmaFast">Fast EMA</label><input type="number" id="sbEmaFast" value="9" min="1" step="1" inputmode="numeric"></div>
-        <div class="field"><label for="sbEmaSlow">Slow EMA</label><input type="number" id="sbEmaSlow" value="21" min="2" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="sbEmaFast">Fast EMA</label><input type="number" id="sbEmaFast" value="20" min="1" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="sbEmaSlow">Slow EMA</label><input type="number" id="sbEmaSlow" value="50" min="2" step="1" inputmode="numeric"></div>
       </div>
       <div class="grid3 keep" data-rule="rsi" hidden>
         <div class="field"><label for="sbRsiLen">RSI length</label><input type="number" id="sbRsiLen" value="14" min="2" step="1" inputmode="numeric"></div>
-        <div class="field"><label for="sbRsiOs">Oversold</label><input type="number" id="sbRsiOs" value="30" min="1" max="99" step="any" inputmode="decimal"></div>
-        <div class="field"><label for="sbRsiOb">Overbought</label><input type="number" id="sbRsiOb" value="70" min="1" max="99" step="any" inputmode="decimal"></div>
+        <div class="field"><label for="sbRsiOs">Oversold</label><input type="number" id="sbRsiOs" value="25" min="1" max="99" step="any" inputmode="decimal"></div>
+        <div class="field"><label for="sbRsiOb">Overbought</label><input type="number" id="sbRsiOb" value="75" min="1" max="99" step="any" inputmode="decimal"></div>
       </div>
       <div class="grid3 keep" data-rule="breakout" hidden>
-        <div class="field"><label for="sbBoLen">Lookback (candles)</label><input type="number" id="sbBoLen" value="20" min="2" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="sbBoLen">Lookback (candles)</label><input type="number" id="sbBoLen" value="50" min="2" step="1" inputmode="numeric"></div>
       </div>
       <div class="grid3 keep" data-rule="bb" hidden>
         <div class="field"><label for="sbBbLen">Band length</label><input type="number" id="sbBbLen" value="20" min="2" step="1" inputmode="numeric"></div>
-        <div class="field"><label for="sbBbMult">Std. deviations</label><input type="number" id="sbBbMult" value="2" min="0.1" step="any" inputmode="decimal"></div>
+        <div class="field"><label for="sbBbMult">Std. deviations</label><input type="number" id="sbBbMult" value="2.5" min="0.1" step="any" inputmode="decimal"></div>
       </div>
       <div class="field">
         <label class="check"><input type="checkbox" id="sbTrend"> Only trade with the trend</label>
@@ -373,6 +392,21 @@
       </div>
       <span class="hint">Take profit and stop loss are price moves from the entry price. Leave a box empty to turn that exit off.</span>
       <label class="check"><input type="checkbox" id="sbOpp" checked> Close on opposite signal</label>
+      <div class="field" data-rule="bb" hidden>
+        <label class="check"><input type="checkbox" id="sbMid"> Close at the middle band</label>
+        <span class="hint">The mean-reversion target: closes the trade when a candle closes back at the band’s moving average.</span>
+      </div>
+      </div>
+
+      <div class="fields" data-mode="grid" hidden>
+        <h3 class="sect">Grid settings</h3>
+        <div class="grid3">
+          <div class="field"><label for="sbGridLo">Lower price</label><input type="number" id="sbGridLo" min="0" step="any" inputmode="decimal" placeholder="Auto"></div>
+          <div class="field"><label for="sbGridHi">Upper price</label><input type="number" id="sbGridHi" min="0" step="any" inputmode="decimal" placeholder="Auto"></div>
+          <div class="field"><label for="sbGridN">Number of grids</label><input type="number" id="sbGridN" value="10" min="2" max="200" step="1" inputmode="numeric"></div>
+        </div>
+        <span class="hint">Leave both prices empty to use 10% below and above the price on the start date. The starting balance is split evenly across the grids. Smaller timeframes give more accurate grid results.</span>
+      </div>
 
       <h3 class="sect">Position and fees</h3>
       <div class="grid">
@@ -383,7 +417,7 @@
           <span class="hint">Charged on entry and on exit. Typical taker fees are about 0.05% to 0.1%.</span>
         </div>
       </div>
-      <div class="grid3">
+      <div class="grid3" data-mode="signal">
         <div class="field">
           <label for="sbSizeMode">Size per trade</label>
           <select id="sbSizeMode"><option value="pct">% of balance</option><option value="fixed">Fixed amount</option></select>
@@ -408,6 +442,7 @@
         <li>Fees are charged on entry and exit. Funding costs and slippage are not included.</li>
         <li>With leverage, a trade is treated as liquidated when the price moves 1 ÷ leverage against it. Real exchanges liquidate a little earlier.</li>
         <li>Max drawdown is the largest fall in balance from a previous peak, measured at each candle close.</li>
+        <li>Grid bot: grid lines are evenly spaced. Grids above the starting price buy the coin at the start so they can sell as the price rises. Each grid buys at its lower line and sells at its upper line, without leverage. Inside a candle, the price is assumed to move open, low, high, close on rising candles and open, high, low, close on falling ones.</li>
       </ul>
     </details>
     <section class="out" id="sbOut" aria-live="polite"></section>
@@ -971,7 +1006,7 @@
   // Raw long/short signals at each candle close, plus the optional trend filter
   function buildSignals(cs, s) {
     var n = cs.length, close = cs.map(function (x) { return x.c; });
-    var L = new Array(n).fill(false), S = new Array(n).fill(false), ready = new Array(n).fill(false), i, j;
+    var L = new Array(n).fill(false), S = new Array(n).fill(false), ready = new Array(n).fill(false), mid = null, i, j;
     if (s.rule === 'ema') {
       var f = emaArr(close, s.fast), w = emaArr(close, s.slow);
       for (i = 1; i < n; i++) {
@@ -998,6 +1033,7 @@
       }
     } else {
       var bb = bbArr(close, s.bbLen, s.bbMult);
+      mid = bb.mid;
       for (i = 0; i < n; i++) {
         if (isNaN(bb.lo[i])) continue;
         ready[i] = true;
@@ -1014,7 +1050,7 @@
         trend[i] = close[i] > te[i] ? 1 : close[i] < te[i] ? -1 : 0;
       }
     }
-    return { L: L, S: S, ready: ready, trend: trend };
+    return { L: L, S: S, ready: ready, trend: trend, mid: mid };
   }
 
   function simulate(cs, sig, s, startT, tfMs) {
@@ -1075,6 +1111,7 @@
         if (pos) {
           var opp = pos.side === 'long' ? sig.S[i] : sig.L[i];
           if (s.opp && opp) pendExit = 'Opposite signal';
+          else if (s.midExit && sig.mid && !isNaN(sig.mid[i]) && (pos.side === 'long' ? b.c >= sig.mid[i] : b.c <= sig.mid[i])) pendExit = 'Middle band';
           else if (s.maxBars && i - pos.i + 1 >= s.maxBars) pendExit = 'Time limit';
         }
         if (!pos || pendExit) {
@@ -1102,6 +1139,56 @@
     }
     return { trades: trades, equity: equity, bal: bal, maxDD: maxDD, fees: fees, liqs: liqs, busted: busted, first: first };
   }
+  // Grid bot: evenly spaced grids, each buys at its lower line and sells at its upper line
+  function simulateGrid(cs, g, startT, tfMs) {
+    var n = cs.length, first = -1, i, k;
+    for (i = 0; i < n; i++) if (cs[i].t >= startT) { first = i; break; }
+    if (first < 0) return null;
+    var p0 = cs[first].o;
+    var lower = g.lower || p0 * 0.9, upper = g.upper || p0 * 1.1;
+    var stepP = (upper - lower) / g.n, per = g.balance / g.n / (1 + g.fee);
+    var cash = g.balance, fees = 0, cells = [], rounds = [];
+    function buy(cell, price, t) {
+      var f = per * g.fee;
+      cell.qty = per / price; cell.buyP = price; cell.buyT = t; cell.cost = per + f; cell.hold = true;
+      cash -= per + f; fees += f;
+    }
+    function sell(cell, price, t) {
+      var gross = cell.qty * price, f = gross * g.fee, pnl = gross - f - cell.cost;
+      cash += gross - f; fees += f;
+      rounds.push({ entryT: cell.buyT, entry: cell.buyP, exitT: t, exit: price, pnl: pnl, pct: pnl / cell.cost * 100 });
+      cell.hold = false; cell.qty = 0; cell.cost = 0;
+    }
+    // price moving from a to b: falling fills buy orders, rising fills sell orders
+    function move(a, b, t) {
+      var q, c;
+      if (b < a) { for (q = cells.length - 1; q >= 0; q--) { c = cells[q]; if (!c.hold && c.lo < a && c.lo >= b) buy(c, c.lo, t); } }
+      else if (b > a) { for (q = 0; q < cells.length; q++) { c = cells[q]; if (c.hold && c.hi > a && c.hi <= b) sell(c, c.hi, t); } }
+    }
+    for (k = 0; k < g.n; k++) {
+      var cell = { lo: lower + k * stepP, hi: lower + (k + 1) * stepP, hold: false, qty: 0, buyP: 0, buyT: 0, cost: 0 };
+      cells.push(cell);
+      if (cell.lo >= p0) buy(cell, p0, cs[first].t);
+    }
+    var prev = p0, peak = g.balance, maxDD = 0, inRange = 0, above = 0, below = 0;
+    var equity = [{ t: cs[first].t, v: g.balance }], held = 0;
+    for (i = first; i < n; i++) {
+      var b = cs[i];
+      move(prev, b.o, b.t);
+      if (b.c >= b.o) { move(b.o, b.l, b.t); move(b.l, b.h, b.t); move(b.h, b.c, b.t); }
+      else { move(b.o, b.h, b.t); move(b.h, b.l, b.t); move(b.l, b.c, b.t); }
+      prev = b.c;
+      held = 0;
+      for (k = 0; k < cells.length; k++) if (cells[k].hold) held += cells[k].qty;
+      var eq = cash + held * b.c;
+      equity.push({ t: b.t + tfMs, v: eq });
+      if (eq > peak) peak = eq;
+      if (peak > 0 && (peak - eq) / peak > maxDD) maxDD = (peak - eq) / peak;
+      if (b.c > upper) above++; else if (b.c < lower) below++; else inRange++;
+    }
+    return { rounds: rounds, equity: equity, cash: cash, held: held, value: cash + held * cs[n - 1].c, cells: cells,
+      lower: lower, upper: upper, per: per, fees: fees, maxDD: maxDD, inRange: inRange, above: above, below: below, first: first, p0: p0 };
+  }
   /* ---------- strategy engine end ---------- */
 
   /* ---------- Strategy Backtest tab ---------- */
@@ -1111,6 +1198,37 @@
     breakout: 'Long when a candle closes above the highest high of the previous candles. Short when it closes below the lowest low.',
     bb: 'Long when a candle closes below the lower band. Short when it closes above the upper band.'
   };
+  var MODE_HINTS = {
+    signal: 'Opens one trade at a time whenever your entry rule fires.',
+    grid: 'Buys at evenly spaced prices as the price falls, and sells each purchase one step higher. Works best when the price moves sideways.'
+  };
+  var PRESETS = {
+    bbmr: {
+      hint: 'Daily Bollinger Band bounce, long only. Buys when a candle closes below the lower band and sells when price closes back at the middle band, with a 5% stop loss. Suits sideways markets; a strong downtrend can cause a run of losses.',
+      set: { sbTf: '1d', sbRule: 'bb', sbBbLen: 20, sbBbMult: 2, dir: 'long', sbTrend: false, sbTp: '', sbSl: 5, sbMax: '', sbOpp: false, sbMid: true, days: 730 }
+    },
+    scalp: {
+      hint: 'RSI entries on 5-minute candles in the direction of the 200 EMA trend, with a small 0.3% take profit, a wider 0.9% stop loss and a 2-hour time limit. Small targets give a high win rate, but one loss cancels several wins and fees take a large share of each gain.',
+      set: { sbTf: '5m', sbRule: 'rsi', sbRsiLen: 14, sbRsiOs: 30, sbRsiOb: 70, dir: 'both', sbTrend: true, sbTrendLen: 200, sbTp: 0.3, sbSl: 0.9, sbMax: 24, sbOpp: false, sbMid: false, days: 30 }
+    }
+  };
+  function applyPreset() {
+    var pr = PRESETS[$('sbPreset').value];
+    if (!pr) { $('sbPresetHint').textContent = 'Pick a preset to fill in the settings below. You can change anything afterwards.'; return; }
+    var v = pr.set;
+    Object.keys(v).forEach(function (id) {
+      if (id.indexOf('sb') !== 0) return;
+      var el = $(id);
+      if (el.type === 'checkbox') el.checked = !!v[id]; else el.value = v[id];
+    });
+    var dirEl = document.querySelector('input[name="sbDir"][value="' + v.dir + '"]');
+    if (dirEl) dirEl.checked = true;
+    var today = toInputValue(Date.now()).slice(0, 10);
+    $('sbEnd').value = today;
+    $('sbStart').value = toInputValue(Date.now() - v.days * DAY).slice(0, 10);
+    $('sbPresetHint').textContent = pr.hint;
+    syncSb();
+  }
   function syncSb() {
     var c = sb.read(), lev = $('sbLev');
     Array.prototype.forEach.call(document.querySelectorAll('.sbQ'), function (el) { el.textContent = c.quote; });
@@ -1121,9 +1239,14 @@
     $('sbRuleHint').textContent = RULE_HINTS[rule];
     $('sbTrendWrap').hidden = !$('sbTrend').checked;
     $('sbSizeLabel').textContent = $('sbSizeMode').value === 'pct' ? 'Size (% of balance)' : 'Size (' + c.quote + ')';
+    var mode = document.querySelector('input[name="sbMode"]:checked').value;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mode]'), function (el) { el.hidden = el.getAttribute('data-mode') !== mode; });
+    $('sbModeHint').textContent = MODE_HINTS[mode];
   }
   var sb = setupCommon('sb', function () { if (typeof sb !== 'undefined' && sb) syncSb(); });
   ['sbRule', 'sbTrend', 'sbSizeMode'].forEach(function (id) { $(id).addEventListener('change', syncSb); });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="sbMode"]'), function (r) { r.addEventListener('change', syncSb); });
+  $('sbPreset').addEventListener('change', applyPreset);
   syncSb();
   (function () {
     var today = toInputValue(Date.now()).slice(0, 10);
@@ -1160,7 +1283,7 @@
     if (s.tp !== null && !(s.tp > 0)) return 'Take profit must be more than 0, or empty to turn it off.';
     if (s.sl !== null && !(s.sl > 0)) return 'Stop loss must be more than 0, or empty to turn it off.';
     if (s.maxBars !== null && !isInt(s.maxBars, 1, 100000)) return 'Max candles held must be a whole number, or empty for no limit.';
-    if (!s.tp && !s.sl && !s.opp && !s.maxBars) return 'Turn on at least one exit rule, so trades can close.';
+    if (!s.tp && !s.sl && !s.opp && !s.maxBars && !s.midExit) return 'Turn on at least one exit rule, so trades can close.';
     if (!(s.balance > 0)) return 'Enter a starting balance greater than zero.';
     if (!(s.size > 0)) return 'Enter a size per trade greater than zero.';
     if (s.sizeMode === 'pct' && s.size > 100) return 'Size cannot be more than 100% of the balance.';
@@ -1180,6 +1303,7 @@
     if (s.tp) ex.push('take profit ' + s.tp + '%');
     if (s.sl) ex.push('stop loss ' + s.sl + '%');
     if (s.opp) ex.push('opposite signal');
+    if (s.midExit) ex.push('middle band');
     if (s.maxBars) ex.push('after ' + s.maxBars + ' candles');
     return { rule: r, exits: 'Exits: ' + ex.join(', ') + '.' };
   }
@@ -1264,20 +1388,120 @@
       '</div>' : '');
 
     lastTrades = tr;
-    if (n) $('sbCsv').addEventListener('click', function () { downloadCsv(c, s); });
+    if (n) $('sbCsv').addEventListener('click', function () {
+      var head = 'number,side,entry_time_utc8,entry_price,exit_time_utc8,exit_price,exit_reason,pnl_' + c.quote.toLowerCase() + ',pnl_pct,candles_held';
+      var lines = lastTrades.map(function (t, k) {
+        return [k + 1, t.side, toInputValue(t.entryT).replace('T', ' '), t.entry, toInputValue(t.exitT).replace('T', ' '), t.exit, t.reason, t.pnl.toFixed(4), t.pct.toFixed(4), t.bars].join(',');
+      });
+      downloadCsv('backtest-' + c.symbol + '-' + s.tf + '.csv', head, lines);
+    });
   }
 
-  function downloadCsv(c, s) {
-    var head = 'number,side,entry_time_utc8,entry_price,exit_time_utc8,exit_price,exit_reason,pnl_' + c.quote.toLowerCase() + ',pnl_pct,candles_held';
-    var lines = lastTrades.map(function (t, k) {
-      return [k + 1, t.side, toInputValue(t.entryT).replace('T', ' '), t.entry, toInputValue(t.exitT).replace('T', ' '), t.exit, t.reason, t.pnl.toFixed(4), t.pct.toFixed(4), t.bars].join(',');
-    });
+  function downloadCsv(name, head, lines) {
     var blob = new Blob([[head].concat(lines).join('\n')], { type: 'text/csv' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'backtest-' + c.symbol + '-' + s.tf + '.csv';
+    a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  function runGrid(c, startT, endT) {
+    var lo = num('sbGridLo'), hi = num('sbGridHi'), gn = num('sbGridN'), bal = num('sbBal'), fee = (num('sbFee') || 0) / 100;
+    if ((lo === null) !== (hi === null)) { showErr('sbOut', 'Enter both the lower and upper price, or leave both empty for an automatic range.'); return; }
+    if (lo !== null && !(lo > 0 && hi > lo)) { showErr('sbOut', 'The upper price must be higher than the lower price, and both must be above zero.'); return; }
+    if (!isInt(gn, 2, 200)) { showErr('sbOut', 'Number of grids must be a whole number between 2 and 200.'); return; }
+    if (!(bal > 0)) { showErr('sbOut', 'Enter a starting balance greater than zero.'); return; }
+    if (!(fee >= 0 && fee <= 0.05)) { showErr('sbOut', 'Fee must be between 0% and 5%.'); return; }
+    var g = { lower: lo, upper: hi, n: gn, balance: bal, fee: fee, auto: lo === null };
+    var tf = $('sbTf').value, tfMs = TF[tf];
+    var startA = Math.floor((startT + OFF) / tfMs) * tfMs - OFF;
+    var need = Math.ceil((endT - startA) / TF[sourceTf(c, tf)]);
+    if (need > MAX_CANDLES) {
+      showErr('sbOut', 'That needs about ' + need.toLocaleString('en-US') + ' candles, more than the ' + MAX_CANDLES.toLocaleString('en-US') + ' limit. Pick a bigger timeframe or a shorter period.');
+      return;
+    }
+    setBusy('sbGo', true, 'Downloading candles\u2026');
+    $('sbOut').innerHTML = '';
+    fetchCandles(c, tf, startA, endT, function (f) {
+      $('sbGo').textContent = 'Downloading candles\u2026 ' + Math.round(f * 100) + '%';
+    }).then(function (cs) {
+      if (!cs.length) { showErr('sbOut', noDataMsg(c, 'for that period')); return; }
+      var r = simulateGrid(cs, g, startA, tfMs);
+      if (!r) { showErr('sbOut', noDataMsg(c, 'for that period')); return; }
+      renderGrid(r, cs, g, c, tf, endT);
+      $('sbOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function (e) {
+      showErr('sbOut', explainError(e, c));
+    }).then(function () { setBusy('sbGo', false, 'Run backtest'); });
+  }
+
+  function renderGrid(r, cs, g, c, tf, endT) {
+    var q = c.quote, pnl = r.value - g.balance, ret = pnl / g.balance;
+    var firstBar = cs[r.first], lastBar = cs[cs.length - 1];
+    var bh = (lastBar.c - firstBar.o) / firstBar.o;
+    var rounds = r.rounds, n = rounds.length;
+    var gridProfit = rounds.reduce(function (a, t) { return a + t.pnl; }, 0);
+    var heldCells = r.cells.filter(function (x) { return x.hold; });
+    var unreal = r.held * lastBar.c - heldCells.reduce(function (a, x) { return a + x.cost; }, 0);
+    var bottom = r.cells[0], top = r.cells[r.cells.length - 1];
+    var pgTop = (top.hi / top.lo - 1 - 2 * g.fee) * 100, pgBottom = (bottom.hi / bottom.lo - 1 - 2 * g.fee) * 100;
+    var total = r.inRange + r.above + r.below;
+    var pctOf = function (x) { return (x / total * 100).toFixed(1) + '%'; };
+    var notes = [];
+    if (g.auto) notes.push('No price range was entered, so the grid ran from 10% below to 10% above the starting price.');
+    if (pgTop <= 0) notes.push('Near the top of the range, the gap between grid lines is smaller than the fees, so round trips there lose money. Use fewer grids or a wider range.');
+    if (r.above) notes.push('The price closed above the top of the range ' + pctOf(r.above) + ' of the time. The bot had sold everything by then, so it missed those gains.');
+    if (r.below) notes.push('The price closed below the bottom of the range ' + pctOf(r.below) + ' of the time. The bot was holding coins as the price fell, which shows up as unrealized loss.');
+    if (n === 0) notes.push('No grid completed a full buy-and-sell round trip in this period.');
+    if (c.market === 'perp') notes.push('The grid is simulated without leverage, buying and selling the coin like a spot grid bot.');
+
+    var rows = rounds.slice(0, 500).map(function (t, k) {
+      return '<tr><td>' + (k + 1) + '</td>' +
+        '<td>' + esc(fmtShort(t.entryT)) + '</td><td class="num">' + esc(fmtPrice(t.entry)) + '</td>' +
+        '<td>' + esc(fmtShort(t.exitT)) + '</td><td class="num">' + esc(fmtPrice(t.exit)) + '</td>' +
+        '<td class="num ' + cls(t.pnl, 2) + '">' + esc(fmtSigned(t.pnl, 2)) + '</td>' +
+        '<td class="num ' + cls(t.pct, 2) + '">' + esc(fmtSigned(t.pct, 2)) + '%</td></tr>';
+    }).join('');
+
+    $('sbOut').innerHTML =
+      '<div class="card">' +
+        '<p class="price ' + cls(pnl, 2) + '">' + esc(fmtSigned(pnl, 2)) + '<small>' + esc(q) + '</small><span class="pct">' + esc(fmtSigned(ret * 100, 2)) + '%</span></p>' +
+        '<p class="meta"><strong>Grid bot, ' + g.n + ' grids from ' + esc(fmtPrice(r.lower)) + ' to ' + esc(fmtPrice(r.upper)) + ' ' + esc(q) + '</strong></p>' +
+        '<p class="meta">' + esc(c.symbol) + ' on ' + esc(c.exchangeName) + ' ' + (c.market === 'spot' ? 'spot' : 'perpetual') + ', ' + TF_LABEL[tf] + ' candles, ' + esc(fmtDay(firstBar.t)) + ' to ' + esc(fmtDay(Math.min(endT, lastBar.t + TF[tf]) - 1)) + '. Each grid holds about ' + esc(fmtMoney(r.per)) + ' ' + esc(q) + '.</p>' +
+        '<dl>' +
+          '<div><dt>Final value</dt><dd>' + esc(fmtMoney(r.value)) + ' ' + esc(q) + '<span class="sub">Cash plus coins still held</span></dd></div>' +
+          '<div><dt>Completed round trips</dt><dd>' + n + '<span class="sub">Bought low, sold one grid higher</span></dd></div>' +
+          '<div><dt>Grid profit</dt><dd class="' + cls(gridProfit, 2) + '">' + esc(fmtSigned(gridProfit, 2)) + '<span class="sub">Locked in by round trips</span></dd></div>' +
+          '<div><dt>Unrealized P/L</dt><dd class="' + cls(unreal, 2) + '">' + esc(fmtSigned(unreal, 2)) + '<span class="sub">Coins in ' + heldCells.length + ' of ' + g.n + ' grids</span></dd></div>' +
+          '<div><dt>Profit per grid</dt><dd>' + esc(fmtSigned(pgTop, 2)) + '% to ' + esc(fmtSigned(pgBottom, 2)) + '%<span class="sub">Per round trip, after fees</span></dd></div>' +
+          '<div><dt>Max drawdown</dt><dd class="' + (r.maxDD > 0 ? 'loss' : '') + '">' + (r.maxDD > 0 ? '\u2212' : '') + (r.maxDD * 100).toFixed(2) + '%</dd></div>' +
+          '<div><dt>Fees paid</dt><dd>' + esc(fmtMoney(r.fees)) + ' ' + esc(q) + '</dd></div>' +
+          '<div><dt>Time in range</dt><dd>' + pctOf(r.inRange) + '<span class="sub">' + pctOf(r.above) + ' above, ' + pctOf(r.below) + ' below</span></dd></div>' +
+          '<div><dt>Buy and hold</dt><dd class="' + cls(bh * 100, 2) + '">' + esc(fmtSigned(bh * 100, 2)) + '%<span class="sub">Price change over the period</span></dd></div>' +
+        '</dl>' +
+        '<h4 class="chart-title">Value over time</h4>' +
+        equitySVG(r.equity, g.balance) +
+        '<div class="axis"><span>' + esc(fmtDay(r.equity[0].t)) + '</span><span>Dashed line: starting balance</span><span>' + esc(fmtDay(r.equity[r.equity.length - 1].t - 1)) + '</span></div>' +
+        notes.map(function (x) { return '<p class="note">' + esc(x) + '</p>'; }).join('') +
+      '</div>' +
+      (n ? '<div class="card">' +
+        '<div class="card-head"><h4>Round trips</h4><button type="button" class="ghost" id="sbCsv">Download round trips (CSV)</button></div>' +
+        '<div class="table-wrap"><table>' +
+          '<thead><tr><th>#</th><th>Buy time</th><th class="num">Buy</th><th>Sell time</th><th class="num">Sell</th><th class="num">Profit (' + esc(q) + ')</th><th class="num">Profit %</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table></div>' +
+        (n > 500 ? '<p class="meta">Showing the first 500 of ' + n + ' round trips. Download the CSV to see them all.</p>' : '') +
+        '<p class="meta">Times are UTC+8. Times show the candle in which each order filled.</p>' +
+      '</div>' : '');
+
+    if (n) $('sbCsv').addEventListener('click', function () {
+      var head = 'number,buy_time_utc8,buy_price,sell_time_utc8,sell_price,profit_' + q.toLowerCase() + ',profit_pct';
+      var lines = rounds.map(function (t, k) {
+        return [k + 1, toInputValue(t.entryT).replace('T', ' '), t.entry, toInputValue(t.exitT).replace('T', ' '), t.exit, t.pnl.toFixed(4), t.pct.toFixed(4)].join(',');
+      });
+      downloadCsv('grid-' + c.symbol + '-' + tf + '.csv', head, lines);
+    });
   }
 
   $('sbForm').addEventListener('submit', function (ev) {
@@ -1293,6 +1517,7 @@
       boLen: num('sbBoLen'), bbLen: num('sbBbLen'), bbMult: num('sbBbMult'),
       trend: $('sbTrend').checked, trendLen: num('sbTrendLen'),
       tp: tp === 0 ? null : tp, sl: sl === 0 ? null : sl, maxBars: num('sbMax'), opp: $('sbOpp').checked,
+      midExit: $('sbRule').value === 'bb' && $('sbMid').checked,
       balance: num('sbBal'), sizeMode: $('sbSizeMode').value, size: num('sbSize'),
       lev: c.market === 'spot' ? 1 : num('sbLev'),
       fee: (num('sbFee') || 0) / 100
@@ -1303,6 +1528,7 @@
     endT = Math.min(endT + DAY, Date.now());
     if (startT >= Date.now()) { showErr('sbOut', 'The start date is in the future.'); return; }
     if (startT >= endT) { showErr('sbOut', 'The end date must be on or after the start date.'); return; }
+    if (document.querySelector('input[name="sbMode"]:checked').value === 'grid') { runGrid(c, startT, endT); return; }
     var err = validateSb(s);
     if (err) { showErr('sbOut', err); return; }
 
