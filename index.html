@@ -64,10 +64,11 @@
   .lede { color: var(--muted); margin: 0 0 22px; max-width: 54ch; }
 
   /* Tabs */
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
     background: none; border: 0; border-bottom: 3px solid transparent; border-radius: 0;
-    margin-bottom: -1px; padding: 10px 16px; min-height: 46px;
+    margin-bottom: -1px; padding: 10px 16px; min-height: 46px; white-space: nowrap; flex: none;
     font: inherit; font-weight: 600; color: var(--muted); cursor: pointer;
   }
   .tab:hover { color: var(--ink); }
@@ -146,7 +147,7 @@
     overflow-wrap: anywhere;
   }
   .price small { font-size: 0.4em; font-weight: 600; color: var(--muted); letter-spacing: 0; margin-left: 6px; }
-  .price .pct { font-size: 0.45em; font-weight: 600; letter-spacing: 0; margin-left: 10px; }
+  .price .pct { font-size: 0.45em; font-weight: 600; letter-spacing: 0; margin-left: 10px; white-space: nowrap; display: inline-block; }
   .win { color: var(--up); }
   .loss { color: var(--down); }
   .meta { margin: 10px 0 0; color: var(--muted); font-size: 0.95rem; }
@@ -188,6 +189,20 @@
   tbody tr + tr td { border-top: 1px solid var(--line); }
   th.num, td.num { text-align: right; }
 
+  /* Strategy Comparison */
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-bottom: 10px; }
+  .filters select { width: auto; min-height: 40px; padding: 6px 10px; }
+  .fgroup { display: inline-flex; align-items: center; gap: 8px; }
+  .filters .check { min-height: 40px; font-weight: 500; }
+  .shown { color: var(--muted); font-size: 0.85rem; margin: 0 0 10px; }
+  .an-table th:first-child, .an-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); white-space: normal; min-width: 170px; max-width: 230px; }
+  .an-table .rank { color: var(--muted); font-weight: 400; margin-right: 4px; }
+  .an-table td:first-child strong { font-weight: 600; }
+  .an-table .sub { display: block; color: var(--muted); font-size: 0.8rem; }
+  .sort { background: none; border: 0; padding: 0; min-height: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; white-space: nowrap; }
+  .sort[aria-pressed="true"] { color: var(--ink); }
+  .mini { min-height: 34px; padding: 0 12px; font-size: 0.85rem; }
+
   footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; max-width: 62ch; }
 
   /* Phone layout */
@@ -201,7 +216,7 @@
     }
     h1 { font-size: 1.7rem; }
     .lede { margin-bottom: 16px; font-size: 0.95rem; }
-    .tab { flex: 1; padding: 8px 4px; font-size: 0.9rem; line-height: 1.2; }
+    .tab { padding: 10px 12px; font-size: 0.95rem; }
     .grid3:not(.keep) { grid-template-columns: 1fr; }
     .grid3 { gap: 12px; }
     th, td { padding: 8px; }
@@ -223,12 +238,13 @@
 <body>
 <main>
   <h1>Coin price tools</h1>
-  <p class="lede">Look up a coin price at any moment, test a single trade, or backtest a trading strategy on months of past data.</p>
+  <p class="lede">Look up a coin price at any moment, test a single trade, backtest a trading strategy, or compare many strategies at once.</p>
 
   <div class="tabs" role="tablist" aria-label="Tools">
     <button type="button" class="tab" role="tab" id="tab-pc" aria-selected="true" aria-controls="panel-pc">Price Checker</button>
     <button type="button" class="tab" role="tab" id="tab-bt" aria-selected="false" aria-controls="panel-bt" tabindex="-1">Trade Backtest</button>
     <button type="button" class="tab" role="tab" id="tab-sb" aria-selected="false" aria-controls="panel-sb" tabindex="-1">Strategy Backtest</button>
+    <button type="button" class="tab" role="tab" id="tab-an" aria-selected="false" aria-controls="panel-an" tabindex="-1">Strategy Comparison</button>
   </div>
 
   <!-- Price Checker -->
@@ -446,6 +462,51 @@
       </ul>
     </details>
     <section class="out" id="sbOut" aria-live="polite"></section>
+  </section>
+
+  <!-- Strategy Comparison -->
+  <section id="panel-an" role="tabpanel" aria-labelledby="tab-an" hidden>
+    <p class="panel-intro">Run every built-in strategy on one coin and period, then compare the results side by side. Tap Open on any row to look at it in detail in Strategy Backtest.</p>
+    <form id="anForm" novalidate>
+      <div class="fields" id="anFields"></div>
+      <div class="grid3">
+        <div class="field">
+          <label for="anTf">Candle timeframe</label>
+          <select id="anTf">
+            <option value="5m">5 minutes</option>
+            <option value="15m">15 minutes</option>
+            <option value="1h" selected>1 hour</option>
+            <option value="4h">4 hours</option>
+            <option value="1d">1 day</option>
+          </select>
+        </div>
+        <div class="field"><label for="anStart">Start date</label><input type="date" id="anStart"></div>
+        <div class="field"><label for="anEnd">End date</label><input type="date" id="anEnd"></div>
+      </div>
+      <span class="hint">Dates are in UTC+8, and the end date is included.</span>
+      <div class="grid3">
+        <div class="field"><label for="anBal">Starting balance (<span class="anQ">USDT</span>)</label><input type="number" id="anBal" value="1000" min="0" step="any" inputmode="decimal"></div>
+        <div class="field"><label for="anFee">Fee per trade (%)</label><input type="number" id="anFee" value="0.1" min="0" step="any" inputmode="decimal"></div>
+        <div class="field">
+          <label for="anLev">Leverage (×)</label>
+          <input type="number" id="anLev" value="1" min="1" max="1000" step="any" inputmode="decimal">
+          <span class="hint" id="anLevHint"></span>
+        </div>
+      </div>
+      <span class="hint" id="anCount"></span>
+      <button type="submit" class="primary" id="anGo">Compare strategies</button>
+    </form>
+    <details class="how">
+      <summary>What gets tested</summary>
+      <ul>
+        <li>Entry rules: EMA crossover 9/21, 20/50 and 50/200. RSI (length 14) with levels 30/70, 25/75 and 20/80. Breakout of the last 20, 50 and 100 candles. Bollinger Band bounce (length 20) with 2 and 2.5 standard deviations.</li>
+        <li>Each entry rule is tested long only, short only and both, with the 200 EMA trend filter off and on.</li>
+        <li>Exits: opposite signal only; take profit 3% with stop loss 1.5%; take profit 6% with stop loss 3%. The last two also close on an opposite signal. Bollinger rules also try closing at the middle band with a 5% stop loss.</li>
+        <li>Grid bots: 10 and 20 grids, with ranges of ±10% and ±20% around the starting price.</li>
+        <li>Every signal strategy puts its whole balance into each trade. Fees, leverage and all other rules work the same way as in Strategy Backtest.</li>
+      </ul>
+    </details>
+    <section class="out" id="anOut" aria-live="polite"></section>
   </section>
 
   <footer>
@@ -1191,6 +1252,20 @@
   }
   /* ---------- strategy engine end ---------- */
 
+  var TREND_LEN = 200;
+  // Keep the last download, so opening a compared strategy (or re-running) does not download again
+  var candleCache = null;
+  function cachedFetch(c, tf, from, to, progress) {
+    var key = [c.exchange, c.market, c.symbol, tf].join('|'), k = candleCache;
+    if (k && k.key === key && from >= k.from && to <= k.to + TF[tf] && Date.now() - k.at < 10 * 60000) {
+      return Promise.resolve(k.rows.filter(function (r) { return r.t >= from && r.t < to; }));
+    }
+    return fetchCandles(c, tf, from, to, progress).then(function (rows) {
+      candleCache = { key: key, from: from, to: to, rows: rows, at: Date.now() };
+      return rows;
+    });
+  }
+
   /* ---------- Strategy Backtest tab ---------- */
   var RULE_HINTS = {
     ema: 'Long when the fast EMA crosses above the slow EMA. Short when it crosses below.',
@@ -1423,7 +1498,7 @@
     }
     setBusy('sbGo', true, 'Downloading candles\u2026');
     $('sbOut').innerHTML = '';
-    fetchCandles(c, tf, startA, endT, function (f) {
+    cachedFetch(c, tf, startA, endT, function (f) {
       $('sbGo').textContent = 'Downloading candles\u2026 ' + Math.round(f * 100) + '%';
     }).then(function (cs) {
       if (!cs.length) { showErr('sbOut', noDataMsg(c, 'for that period')); return; }
@@ -1536,7 +1611,7 @@
     var maxLen = s.rule === 'ema' ? s.slow : s.rule === 'rsi' ? s.rsiLen + 1 : s.rule === 'breakout' ? s.boLen + 1 : s.bbLen;
     if (s.trend) maxLen = Math.max(maxLen, s.trendLen);
     var startA = Math.floor((startT + OFF) / tfMs) * tfMs - OFF;
-    var fetchFrom = startA - (maxLen * 3 + 5) * tfMs;      // extra history so the indicators are ready on day one
+    var fetchFrom = startA - (Math.max(maxLen, TREND_LEN) * 3 + 5) * tfMs;      // extra history so the indicators are ready on day one
     var need = Math.ceil((endT - fetchFrom) / TF[sourceTf(c, s.tf)]);
     if (need > MAX_CANDLES) {
       showErr('sbOut', 'That needs about ' + need.toLocaleString('en-US') + ' candles, more than the ' + MAX_CANDLES.toLocaleString('en-US') + ' limit. Pick a bigger timeframe or a shorter period.');
@@ -1545,7 +1620,7 @@
 
     setBusy('sbGo', true, 'Downloading candles\u2026');
     $('sbOut').innerHTML = '';
-    fetchCandles(c, s.tf, fetchFrom, endT, function (f) {
+    cachedFetch(c, s.tf, fetchFrom, endT, function (f) {
       $('sbGo').textContent = 'Downloading candles\u2026 ' + Math.round(f * 100) + '%';
     }).then(function (cs) {
       if (!cs.length) { showErr('sbOut', noDataMsg(c, 'for that period')); return; }
@@ -1562,8 +1637,302 @@
     }).then(function () { setBusy('sbGo', false, 'Run backtest'); });
   });
 
+  /* ---------- Strategy Comparison tab ---------- */
+  var AN_ENTRIES = [
+    { rule: 'ema', fast: 9, slow: 21, label: 'EMA 9/21' },
+    { rule: 'ema', fast: 20, slow: 50, label: 'EMA 20/50' },
+    { rule: 'ema', fast: 50, slow: 200, label: 'EMA 50/200' },
+    { rule: 'rsi', rsiLen: 14, os: 30, ob: 70, label: 'RSI 30/70' },
+    { rule: 'rsi', rsiLen: 14, os: 25, ob: 75, label: 'RSI 25/75' },
+    { rule: 'rsi', rsiLen: 14, os: 20, ob: 80, label: 'RSI 20/80' },
+    { rule: 'breakout', boLen: 20, label: 'Breakout 20' },
+    { rule: 'breakout', boLen: 50, label: 'Breakout 50' },
+    { rule: 'breakout', boLen: 100, label: 'Breakout 100' },
+    { rule: 'bb', bbLen: 20, bbMult: 2, label: 'Bollinger 20, 2' },
+    { rule: 'bb', bbLen: 20, bbMult: 2.5, label: 'Bollinger 20, 2.5' }
+  ];
+  var AN_EXITS = [
+    { label: 'opposite signal', tp: null, sl: null, opp: true, midExit: false },
+    { label: 'TP 3% / SL 1.5%', tp: 3, sl: 1.5, opp: true, midExit: false },
+    { label: 'TP 6% / SL 3%', tp: 6, sl: 3, opp: true, midExit: false },
+    { label: 'middle band, SL 5%', tp: null, sl: 5, opp: false, midExit: true, only: 'bb' }
+  ];
+  var AN_DIRS = { long: 'Long only', short: 'Short only', both: 'Long and short' };
+  var AN_GRIDS = [{ n: 10, w: 0.1 }, { n: 20, w: 0.1 }, { n: 10, w: 0.2 }, { n: 20, w: 0.2 }];
+  var RULE_NAMES = { ema: 'EMA crossover', rsi: 'RSI', breakout: 'Breakout', bb: 'Bollinger', grid: 'Grid bot' };
+
+  function anCombos() {
+    var list = [];
+    AN_ENTRIES.forEach(function (e, ei) {
+      AN_EXITS.forEach(function (x) {
+        if (x.only && x.only !== e.rule) return;
+        ['long', 'short', 'both'].forEach(function (d) {
+          [false, true].forEach(function (tr) { list.push({ type: 'signal', ei: ei, entry: e, exit: x, dir: d, trend: tr }); });
+        });
+      });
+    });
+    AN_GRIDS.forEach(function (g) { list.push({ type: 'grid', n: g.n, w: g.w }); });
+    return list;
+  }
+
+  function syncAn() {
+    var c = an.read(), lev = $('anLev');
+    Array.prototype.forEach.call(document.querySelectorAll('.anQ'), function (el) { el.textContent = c.quote; });
+    if (c.market === 'spot') { lev.value = 1; lev.disabled = true; $('anLevHint').textContent = 'Spot trades have no leverage.'; }
+    else { lev.disabled = false; $('anLevHint').textContent = ''; }
+  }
+  var an = setupCommon('an', function () { if (typeof an !== 'undefined' && an) syncAn(); });
+  syncAn();
+  $('anCount').textContent = 'Tests ' + anCombos().length + ' strategy combinations on the same candles. Bigger timeframes and shorter periods download faster.';
+  (function () {
+    var today = toInputValue(Date.now()).slice(0, 10);
+    $('anEnd').value = today; $('anEnd').max = today; $('anStart').max = today;
+    $('anStart').value = toInputValue(Date.now() - 90 * DAY).slice(0, 10);
+  })();
+
+  function statsOf(trades, finalBal, start) {
+    var wins = trades.filter(function (t) { return t.pnl > 0; }), losses = trades.filter(function (t) { return t.pnl < 0; });
+    var sumW = wins.reduce(function (a, t) { return a + t.pnl; }, 0), sumL = losses.reduce(function (a, t) { return a + t.pnl; }, 0);
+    return {
+      pnl: finalBal - start, ret: (finalBal - start) / start, trades: trades.length,
+      winRate: trades.length ? wins.length / trades.length : null,
+      pf: losses.length ? sumW / -sumL : (wins.length ? Infinity : null)
+    };
+  }
+
+  var anState = null, anSort = { key: 'pnl', desc: true };
+
+  $('anForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var c = an.read();
+    var bal = num('anBal'), feePct = num('anFee') || 0, lev = c.market === 'spot' ? 1 : num('anLev');
+    var startStr = $('anStart').value, endStr = $('anEnd').value;
+    var startT = parseDay(startStr), endT = parseDay(endStr);
+    if (!c.base) { showErr('anOut', 'Enter a coin symbol, for example WIF.'); return; }
+    if (isNaN(startT) || isNaN(endT)) { showErr('anOut', 'Enter both a start date and an end date.'); return; }
+    endT = Math.min(endT + DAY, Date.now());
+    if (startT >= Date.now()) { showErr('anOut', 'The start date is in the future.'); return; }
+    if (startT >= endT) { showErr('anOut', 'The end date must be on or after the start date.'); return; }
+    if (!(bal > 0)) { showErr('anOut', 'Enter a starting balance greater than zero.'); return; }
+    if (!(feePct >= 0 && feePct <= 5)) { showErr('anOut', 'Fee must be between 0% and 5%.'); return; }
+    if (!(lev >= 1 && lev <= 1000)) { showErr('anOut', 'Leverage must be between 1 and 1000.'); return; }
+
+    var tf = $('anTf').value, tfMs = TF[tf];
+    var startA = Math.floor((startT + OFF) / tfMs) * tfMs - OFF;
+    var fetchFrom = startA - (TREND_LEN * 3 + 5) * tfMs;
+    var need = Math.ceil((endT - fetchFrom) / TF[sourceTf(c, tf)]);
+    if (need > MAX_CANDLES) {
+      showErr('anOut', 'That needs about ' + need.toLocaleString('en-US') + ' candles, more than the ' + MAX_CANDLES.toLocaleString('en-US') + ' limit. Pick a bigger timeframe or a shorter period.');
+      return;
+    }
+    var fee = feePct / 100, combos = anCombos();
+    setBusy('anGo', true, 'Downloading candles\u2026');
+    $('anOut').innerHTML = '';
+    cachedFetch(c, tf, fetchFrom, endT, function (f) {
+      $('anGo').textContent = 'Downloading candles\u2026 ' + Math.round(f * 100) + '%';
+    }).then(function (cs) {
+      if (!cs.length) { showErr('anOut', noDataMsg(c, 'for that period')); return; }
+      var firstIdx = -1;
+      for (var i = 0; i < cs.length; i++) if (cs[i].t >= startA) { firstIdx = i; break; }
+      if (firstIdx < 0) { showErr('anOut', noDataMsg(c, 'for that period')); return; }
+      var p0 = cs[firstIdx].o, sigCache = {}, rows = [], idx = 0, skipped = 0;
+      function one(cb) {
+        if (cb.type === 'grid') {
+          var g = { lower: p0 * (1 - cb.w), upper: p0 * (1 + cb.w), n: cb.n, balance: bal, fee: fee };
+          var gr = simulateGrid(cs, g, startA, tfMs);
+          if (!gr) { skipped++; return; }
+          var st = statsOf(gr.rounds, gr.value, bal);
+          rows.push({ id: rows.length, type: 'grid', ruleKey: 'grid', dir: 'grid', label: 'Grid bot, ' + cb.n + ' grids',
+            sub: '\u00B1' + Math.round(cb.w * 100) + '% range, ' + fmtPrice(g.lower) + ' to ' + fmtPrice(g.upper),
+            pnl: st.pnl, ret: st.ret, trades: st.trades, winRate: st.winRate, pf: null, maxDD: gr.maxDD, fees: gr.fees,
+            spec: { lower: g.lower, upper: g.upper, n: cb.n } });
+          return;
+        }
+        var key = cb.ei + '|' + cb.trend;
+        if (!sigCache[key]) sigCache[key] = buildSignals(cs, Object.assign({}, cb.entry, { trend: cb.trend, trendLen: TREND_LEN }));
+        var s = { dir: cb.dir, tp: cb.exit.tp, sl: cb.exit.sl, maxBars: null, opp: cb.exit.opp, midExit: cb.exit.midExit,
+          balance: bal, sizeMode: 'pct', size: 100, lev: lev, fee: fee };
+        var r = simulate(cs, sigCache[key], s, startA, tfMs);
+        if (!r) { skipped++; return; }
+        var st2 = statsOf(r.trades, r.bal, bal);
+        rows.push({ id: rows.length, type: 'signal', ruleKey: cb.entry.rule, dir: cb.dir, label: cb.entry.label,
+          sub: AN_DIRS[cb.dir] + ', trend filter ' + (cb.trend ? 'on' : 'off') + ', ' + cb.exit.label,
+          pnl: st2.pnl, ret: st2.ret, trades: st2.trades, winRate: st2.winRate, pf: st2.pf, maxDD: r.maxDD, fees: r.fees,
+          spec: { entry: cb.entry, exit: cb.exit, dir: cb.dir, trend: cb.trend } });
+      }
+      function chunk() {
+        var stop = Math.min(idx + 10, combos.length);
+        for (; idx < stop; idx++) one(combos[idx]);
+        $('anGo').textContent = 'Testing ' + idx + ' of ' + combos.length + '\u2026';
+        if (idx < combos.length) return sleep(0).then(chunk);
+      }
+      return Promise.resolve().then(chunk).then(function () {
+        if (!rows.length) { showErr('anOut', 'There are not enough candles in that period to calculate the indicators. Pick a longer period.'); return; }
+        var lastBar = cs[cs.length - 1];
+        anState = { rows: rows, c: c, tf: tf, startStr: startStr, endStr: endStr, bal: bal, feePct: feePct, lev: lev, skipped: skipped,
+          bh: (lastBar.c - p0) / p0, lateStart: cs[firstIdx].t > startA + 2 * tfMs ? cs[firstIdx].t : null,
+          from: cs[firstIdx].t, to: Math.min(endT, lastBar.t + tfMs) - 1 };
+        anSort = { key: 'pnl', desc: true };
+        renderAnalysis();
+        $('anOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }).catch(function (e) {
+      showErr('anOut', explainError(e, c));
+    }).then(function () { setBusy('anGo', false, 'Compare strategies'); });
+  });
+
+  function anCmp(a, b) {
+    var x = a[anSort.key], y = b[anSort.key];
+    var xn = x === null || x === undefined || (typeof x === 'number' && isNaN(x)), yn = y === null || y === undefined || (typeof y === 'number' && isNaN(y));
+    if (xn && yn) return 0;
+    if (xn) return 1;
+    if (yn) return -1;
+    if (x === y) return 0;
+    return anSort.desc ? (y > x ? 1 : -1) : (x > y ? 1 : -1);
+  }
+  function fmtPf(v) { return v === null ? '\u2013' : v === Infinity ? 'No losses' : v.toFixed(2); }
+  function fmtWr(v) { return v === null ? '\u2013' : (v * 100).toFixed(1) + '%'; }
+  function fmtDD(v) { return v > 0 ? '\u2212' + (v * 100).toFixed(2) + '%' : '0.00%'; }
+
+  function renderAnalysis() {
+    var st = anState, all = st.rows, q = st.c.quote;
+    var byPnl = all.slice().sort(function (a, b) { return b.pnl - a.pnl; });
+    var best = byPnl[0], worst = byPnl[byPnl.length - 1];
+    var prof = all.filter(function (r) { return r.pnl > 0; }).length;
+    var rets = all.map(function (r) { return r.ret; }).sort(function (a, b) { return a - b; }), m = rets.length;
+    var med = m % 2 ? rets[(m - 1) / 2] : (rets[m / 2 - 1] + rets[m / 2]) / 2;
+    var none = all.filter(function (r) { return r.trades === 0; }).length;
+    var notes = ['With ' + all.length + ' combinations, some will look good just by luck. Before trusting a result, open it and test it on a different period, or on another coin.'];
+    if (st.lateStart) notes.push(st.c.exchangeName + ' data for this pair only starts on ' + fmtDay(st.lateStart) + ', so all tests begin there.');
+    if (st.c.market === 'spot') notes.push('Spot markets cannot be shorted. Short and long-and-short results show what selling first and buying back would earn, as on a futures market.');
+    if (none) notes.push(none + ' combination' + (none > 1 ? 's' : '') + ' made no trades, because the entry rule never triggered in this period.');
+    if (st.skipped) notes.push(st.skipped + ' combination' + (st.skipped > 1 ? 's' : '') + ' could not run because there were not enough candles for the indicators.');
+
+    $('anOut').innerHTML =
+      '<div class="card">' +
+        '<p class="meta" style="margin-top:0">Best result</p>' +
+        '<p class="price ' + cls(best.pnl, 2) + '">' + esc(fmtSigned(best.pnl, 2)) + '<small>' + esc(q) + '</small><span class="pct">' + esc(fmtSigned(best.ret * 100, 2)) + '%</span></p>' +
+        '<p class="meta"><strong>' + esc(best.label) + '</strong>, ' + esc(best.sub) + '</p>' +
+        '<p class="meta">' + esc(st.c.symbol) + ' on ' + esc(st.c.exchangeName) + ' ' + (st.c.market === 'spot' ? 'spot' : 'perpetual') + ', ' + TF_LABEL[st.tf] + ' candles, ' + esc(fmtDay(st.from)) + ' to ' + esc(fmtDay(st.to)) + '. Fee ' + st.feePct + '% per side' + (st.lev > 1 ? ', ' + st.lev + '\u00D7 leverage' : '') + '.</p>' +
+        '<dl>' +
+          '<div><dt>Combinations tested</dt><dd>' + all.length + '</dd></div>' +
+          '<div><dt>Profitable</dt><dd>' + prof + ' of ' + all.length + '<span class="sub">' + (prof / all.length * 100).toFixed(1) + '% of combinations</span></dd></div>' +
+          '<div><dt>Median return</dt><dd class="' + cls(med * 100, 2) + '">' + esc(fmtSigned(med * 100, 2)) + '%</dd></div>' +
+          '<div><dt>Worst result</dt><dd class="' + cls(worst.pnl, 2) + '">' + esc(fmtSigned(worst.ret * 100, 2)) + '%<span class="sub">' + esc(worst.label) + '</span></dd></div>' +
+          '<div><dt>Buy and hold</dt><dd class="' + cls(st.bh * 100, 2) + '">' + esc(fmtSigned(st.bh * 100, 2)) + '%<span class="sub">Price change over the period</span></dd></div>' +
+        '</dl>' +
+        notes.map(function (x) { return '<p class="note">' + esc(x) + '</p>'; }).join('') +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-head"><h4>All combinations</h4><button type="button" class="ghost" id="anCsv">Download table (CSV)</button></div>' +
+        '<div class="filters">' +
+          '<span class="fgroup"><label class="hint" for="anFRule">Entry</label><select id="anFRule"><option value="">All entries</option><option value="ema">EMA crossover</option><option value="rsi">RSI</option><option value="breakout">Breakout</option><option value="bb">Bollinger</option><option value="grid">Grid bot</option></select></span>' +
+          '<span class="fgroup"><label class="hint" for="anFDir">Direction</label><select id="anFDir"><option value="">All directions</option><option value="long">Long only</option><option value="short">Short only</option><option value="both">Long and short</option></select></span>' +
+          '<label class="check"><input type="checkbox" id="anFProfit"> Profitable only</label>' +
+        '</div>' +
+        '<p class="shown" id="anShown"></p>' +
+        '<div class="table-wrap" id="anTable"></div>' +
+        '<p class="meta">Tap a column heading to sort. Profit factor is total winnings divided by total losses; above 1 means the strategy made money. Grid rows count completed round trips as trades.</p>' +
+      '</div>';
+    renderAnTable();
+  }
+
+  function renderAnTable() {
+    var st = anState, q = st.c.quote;
+    var fr = $('anFRule').value, fd = $('anFDir').value, fp = $('anFProfit').checked;
+    var rows = st.rows.filter(function (r) { return (!fr || r.ruleKey === fr) && (!fd || r.dir === fd) && (!fp || r.pnl > 0); }).sort(anCmp);
+    var cols = [['Strategy', null], ['P/L (' + q + ')', 'pnl'], ['Return', 'ret'], ['Trades', 'trades'], ['Win rate', 'winRate'], ['Profit factor', 'pf'], ['Max drawdown', 'maxDD'], ['Fees', 'fees'], ['', null]];
+    var head = cols.map(function (cdef, k) {
+      var cl = k > 0 && k < cols.length - 1 ? ' class="num"' : '';
+      if (!cdef[1]) return '<th' + cl + '>' + esc(cdef[0]) + '</th>';
+      var on = anSort.key === cdef[1];
+      return '<th' + cl + (on ? ' aria-sort="' + (anSort.desc ? 'descending' : 'ascending') + '"' : '') + '><button type="button" class="sort" data-sort="' + cdef[1] + '" aria-pressed="' + on + '">' + esc(cdef[0]) + (on ? (anSort.desc ? ' \u25BC' : ' \u25B2') : '') + '</button></th>';
+    }).join('');
+    var body = rows.map(function (r, k) {
+      return '<tr>' +
+        '<td><span class="rank">' + (k + 1) + '.</span><strong>' + esc(r.label) + '</strong><span class="sub">' + esc(r.sub) + '</span></td>' +
+        '<td class="num ' + cls(r.pnl, 2) + '">' + esc(fmtSigned(r.pnl, 2)) + '</td>' +
+        '<td class="num ' + cls(r.ret * 100, 2) + '">' + esc(fmtSigned(r.ret * 100, 2)) + '%</td>' +
+        '<td class="num">' + r.trades + '</td>' +
+        '<td class="num">' + fmtWr(r.winRate) + '</td>' +
+        '<td class="num">' + fmtPf(r.pf) + '</td>' +
+        '<td class="num">' + fmtDD(r.maxDD) + '</td>' +
+        '<td class="num">' + esc(fmtMoney(r.fees)) + '</td>' +
+        '<td><button type="button" class="ghost mini" data-open="' + r.id + '" aria-label="Open ' + esc(r.label + ', ' + r.sub) + ' in Strategy Backtest">Open</button></td>' +
+      '</tr>';
+    }).join('');
+    $('anTable').innerHTML = '<table class="an-table"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table>';
+    $('anShown').textContent = 'Showing ' + rows.length + ' of ' + st.rows.length + ' combinations.';
+  }
+
+  $('anOut').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b || !anState) return;
+    if (b.dataset.sort) {
+      var k = b.dataset.sort;
+      if (anSort.key === k) anSort.desc = !anSort.desc;
+      else anSort = { key: k, desc: k !== 'maxDD' && k !== 'fees' };
+      renderAnTable();
+    } else if (b.dataset.open !== undefined) {
+      loadIntoStrategy(anState.rows[+b.dataset.open]);
+    } else if (b.id === 'anCsv') {
+      var q = anState.c.quote.toLowerCase();
+      var head = 'strategy,details,pnl_' + q + ',return_pct,trades,win_rate_pct,profit_factor,max_drawdown_pct,fees_' + q;
+      var lines = anState.rows.slice().sort(function (a, b2) { return b2.pnl - a.pnl; }).map(function (r) {
+        return ['"' + r.label + '"', '"' + r.sub + '"', r.pnl.toFixed(4), (r.ret * 100).toFixed(4), r.trades,
+          r.winRate === null ? '' : (r.winRate * 100).toFixed(2), r.pf === null ? '' : r.pf === Infinity ? 'inf' : r.pf.toFixed(4),
+          (r.maxDD * 100).toFixed(4), r.fees.toFixed(4)].join(',');
+      });
+      downloadCsv('comparison-' + anState.c.symbol + '-' + anState.tf + '.csv', head, lines);
+    }
+  });
+  $('anOut').addEventListener('change', function (ev) {
+    if (anState && /^anF/.test(ev.target.id)) renderAnTable();
+  });
+
+  // Copy one compared combination into the Strategy Backtest tab and run it
+  function setCommon(p, c) {
+    var ex = document.querySelector('input[name="' + p + 'Ex"][value="' + c.exchange + '"]');
+    ex.checked = true; ex.dispatchEvent(new Event('change'));
+    $(p + 'Market').value = c.market; $(p + 'Market').dispatchEvent(new Event('change'));
+    var inList = COINS.indexOf(c.base) >= 0;
+    $(p + 'Coin').value = inList ? c.base : 'OTHER';
+    $(p + 'CustomWrap').hidden = inList;
+    if (!inList) $(p + 'Custom').value = c.base;
+  }
+  function loadIntoStrategy(row) {
+    var st = anState, sp = row.spec;
+    setCommon('sb', st.c);
+    $('sbTf').value = st.tf; $('sbStart').value = st.startStr; $('sbEnd').value = st.endStr;
+    $('sbBal').value = st.bal; $('sbFee').value = st.feePct;
+    $('sbPreset').value = ''; applyPreset();
+    var mode = row.type === 'grid' ? 'grid' : 'signal';
+    document.querySelector('input[name="sbMode"][value="' + mode + '"]').checked = true;
+    if (mode === 'grid') {
+      $('sbGridLo').value = Number(sp.lower.toPrecision(12)); $('sbGridHi').value = Number(sp.upper.toPrecision(12)); $('sbGridN').value = sp.n;
+    } else {
+      var e = sp.entry;
+      document.querySelector('input[name="sbDir"][value="' + sp.dir + '"]').checked = true;
+      $('sbRule').value = e.rule;
+      if (e.rule === 'ema') { $('sbEmaFast').value = e.fast; $('sbEmaSlow').value = e.slow; }
+      else if (e.rule === 'rsi') { $('sbRsiLen').value = e.rsiLen; $('sbRsiOs').value = e.os; $('sbRsiOb').value = e.ob; }
+      else if (e.rule === 'breakout') { $('sbBoLen').value = e.boLen; }
+      else { $('sbBbLen').value = e.bbLen; $('sbBbMult').value = e.bbMult; }
+      $('sbTrend').checked = sp.trend; $('sbTrendLen').value = TREND_LEN;
+      $('sbTp').value = sp.exit.tp === null ? '' : sp.exit.tp;
+      $('sbSl').value = sp.exit.sl === null ? '' : sp.exit.sl;
+      $('sbMax').value = ''; $('sbOpp').checked = sp.exit.opp; $('sbMid').checked = sp.exit.midExit;
+      $('sbSizeMode').value = 'pct'; $('sbSize').value = 100;
+    }
+    syncSb();
+    if (st.c.market !== 'spot') $('sbLev').value = st.lev;
+    selectTab(2, false);
+    window.scrollTo({ top: 0 });
+    $('sbForm').requestSubmit();
+  }
+
   /* ---------- tabs ---------- */
-  var tabs = [$('tab-pc'), $('tab-bt'), $('tab-sb')], panels = [$('panel-pc'), $('panel-bt'), $('panel-sb')];
+  var tabs = [$('tab-pc'), $('tab-bt'), $('tab-sb'), $('tab-an')], panels = [$('panel-pc'), $('panel-bt'), $('panel-sb'), $('panel-an')];
   function selectTab(i, focus) {
     tabs.forEach(function (t, j) {
       var on = i === j;
@@ -1572,6 +1941,7 @@
       panels[j].hidden = !on;
     });
     if (focus) tabs[i].focus();
+    if (tabs[i].scrollIntoView) tabs[i].scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
   tabs.forEach(function (t, i) {
     t.addEventListener('click', function () { selectTab(i, false); });
