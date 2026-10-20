@@ -84,9 +84,9 @@
     gap: 18px;
   }
   .fields { display: contents; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
-  .field { display: grid; gap: 6px; min-width: 0; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 0; }
   label, .label { font-size: 0.9rem; font-weight: 600; }
   .hint { font-size: 0.82rem; color: var(--muted); font-weight: 400; }
   .hint:empty { display: none; }
@@ -102,6 +102,18 @@
     min-height: 44px;
   }
   input:disabled, select:disabled { opacity: 0.55; }
+  /* iPhone Safari: stop date fields from overflowing and centring their text */
+  input[type="date"], input[type="datetime-local"] {
+    -webkit-appearance: none; appearance: none;
+    display: block; min-width: 0; max-width: 100%; text-align: left;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+  /* Let date fields shrink to fit their box (Safari and iPhone draw them wider otherwise) */
+  input[type="date"], input[type="datetime-local"] { min-width: 0; max-width: 100%; display: block; -webkit-appearance: none; appearance: none; }
+  input[type="date"]::-webkit-date-and-time-value, input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
+  .span-all { grid-column: 1 / -1; }
+  .span-all select { max-width: calc(50% - 8px); }
   select:focus-visible, input:focus-visible, button:focus-visible, .seg input:focus-visible + span {
     outline: 3px solid var(--accent);
     outline-offset: 2px;
@@ -115,7 +127,11 @@
   .seg input:checked + span { background: var(--ink); color: var(--bg); }
 
   .row { display: flex; gap: 8px; }
-  .row > input { flex: 1; min-width: 0; }
+  .row { min-width: 0; }
+  .label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-width: 0; }
+  .link { background: none; border: 0; min-height: 0; padding: 2px 4px; margin: -2px -4px; font: inherit; font-size: 0.88rem; font-weight: 600; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; white-space: nowrap; }
+  .row > input { flex: 1 1 0; min-width: 0; width: auto; }
+  .row > button { flex: none; }
   button {
     font: inherit;
     font-weight: 600;
@@ -218,6 +234,7 @@
     .lede { margin-bottom: 16px; font-size: 0.95rem; }
     .tab { padding: 10px 12px; font-size: 0.95rem; }
     .grid3:not(.keep) { grid-template-columns: 1fr; }
+    .span-all select { max-width: 100%; }
     .grid3 { gap: 12px; }
     th, td { padding: 8px; }
     form { padding: 16px; gap: 14px; border-radius: 12px; }
@@ -253,11 +270,8 @@
     <form id="pcForm" novalidate>
       <div class="fields" id="pcFields"></div>
       <div class="field">
-        <label for="pcTime">Date and time (UTC+8)</label>
-        <div class="row">
-          <input type="datetime-local" id="pcTime" step="1" required>
-          <button type="button" class="ghost" id="pcNow">Now</button>
-        </div>
+        <div class="label-row"><label for="pcTime">Date and time (UTC+8)</label><button type="button" class="link" id="pcNow">Use current time</button></div>
+        <input type="datetime-local" id="pcTime" step="1" required>
       </div>
       <button type="submit" class="primary" id="pcGo">Get price</button>
     </form>
@@ -285,11 +299,8 @@
           <input type="datetime-local" id="btOpen" step="1" required>
         </div>
         <div class="field">
-          <label for="btClose">Close trade time (UTC+8)</label>
-          <div class="row">
-            <input type="datetime-local" id="btClose" step="1" required>
-            <button type="button" class="ghost" id="btNow">Now</button>
-          </div>
+          <div class="label-row"><label for="btClose">Close trade time (UTC+8)</label><button type="button" class="link" id="btNow">Now</button></div>
+          <input type="datetime-local" id="btClose" step="1" required>
         </div>
       </div>
 
@@ -325,8 +336,8 @@
 
       <h3 class="sect">Market and period</h3>
       <div class="fields" id="sbFields"></div>
-      <div class="grid3">
-        <div class="field">
+      <div class="grid">
+        <div class="field span-all">
           <label for="sbTf">Candle timeframe</label>
           <select id="sbTf">
             <option value="5m">5 minutes</option>
@@ -469,8 +480,8 @@
     <p class="panel-intro">Run every built-in strategy on one coin and period, then compare the results side by side. Tap Open on any row to look at it in detail in Strategy Backtest.</p>
     <form id="anForm" novalidate>
       <div class="fields" id="anFields"></div>
-      <div class="grid3">
-        <div class="field">
+      <div class="grid">
+        <div class="field span-all">
           <label for="anTf">Candle timeframe</label>
           <select id="anTf">
             <option value="5m">5 minutes</option>
