@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coin price tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #E8EDF1;
+    --surface: #FBFCFD;
+    --ink: #13202A;
+    --muted: #566673;
+    --line: #C4CFD7;
+    --accent: #1B4DB3;
+    --accent-ink: #FFFFFF;
+    --up: #17795A;
+    --down: #B23A32;
+    --warn-bg: #FFF3D6;
+    --warn-ink: #5C4300;
+    --err-bg: #FBE4E1;
+    --err-ink: #6E1F19;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0F171E;
+      --surface: #17222B;
+      --ink: #E6EDF2;
+      --muted: #93A3AF;
+      --line: #2B3A46;
+      --accent: #7BA4FF;
+      --accent-ink: #0B1520;
+      --up: #4CC79B;
+      --down: #F08178;
+      --warn-bg: #3A2F12;
+      --warn-ink: #F3D98B;
+      --err-bg: #3C1E1B;
+      --err-ink: #F5B5AE;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  main { max-width: 700px; margin: 0 auto; padding: 40px 20px 72px; }
+  h1 {
+    font-size: clamp(1.9rem, 5vw, 2.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    margin: 0 0 8px;
+  }
+  .lede { color: var(--muted); margin: 0 0 22px; max-width: 54ch; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .tab {
+    background: none; border: 0; border-bottom: 3px solid transparent; border-radius: 0;
+    margin-bottom: -1px; padding: 10px 16px; min-height: 46px;
+    font: inherit; font-weight: 600; color: var(--muted); cursor: pointer;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .panel-intro { color: var(--muted); margin: 0 0 16px; font-size: 0.95rem; max-width: 56ch; }
+
+  form {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    display: grid;
+    gap: 18px;
+  }
+  .fields { display: contents; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  label, .label { font-size: 0.9rem; font-weight: 600; }
+  .hint { font-size: 0.82rem; color: var(--muted); font-weight: 400; }
+  .hint:empty { display: none; }
+
+  select, input[type="text"], input[type="number"], input[type="datetime-local"] {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  input:disabled, select:disabled { opacity: 0.55; }
+  select:focus-visible, input:focus-visible, button:focus-visible, .seg input:focus-visible + span {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--line); }
+  .seg.two { grid-template-columns: repeat(2, 1fr); }
+  .seg label { margin: 0; font-weight: 600; cursor: pointer; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: block; text-align: center; padding: 10px 8px; min-height: 44px; line-height: 24px; background: var(--bg); }
+  .seg input:checked + span { background: var(--ink); color: var(--bg); }
+
+  .row { display: flex; gap: 8px; }
+  .row > input { flex: 1; min-width: 0; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 0 16px;
+    cursor: pointer;
+  }
+  .ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .ghost:hover { border-color: var(--ink); }
+  .primary { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); font-size: 1.05rem; }
+  .primary:hover { filter: brightness(1.08); }
+  .primary[disabled] { opacity: 0.6; cursor: progress; }
+  [hidden] { display: none !important; }
+
+  .out { margin-top: 24px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .price {
+    font-size: clamp(2.2rem, 8vw, 3.5rem);
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .price small { font-size: 0.4em; font-weight: 600; color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+  .price .pct { font-size: 0.45em; font-weight: 600; letter-spacing: 0; margin-left: 10px; }
+  .win { color: var(--up); }
+  .loss { color: var(--down); }
+  .meta { margin: 10px 0 0; color: var(--muted); font-size: 0.95rem; }
+  .meta strong { color: var(--ink); font-weight: 600; }
+  dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; margin: 20px 0 0; }
+  dt { font-size: 0.82rem; color: var(--muted); }
+  dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+  dd .sub { display: block; font-weight: 400; color: var(--muted); font-size: 0.82rem; }
+  .note, .error {
+    margin: 18px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .note { background: var(--warn-bg); color: var(--warn-ink); }
+  .error { background: var(--err-bg); color: var(--err-ink); margin-top: 0; }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; max-width: 62ch; }
+
+  /* Phone layout */
+  button, select, input { touch-action: manipulation; }
+  @media (max-width: 560px) {
+    main {
+      padding: 20px 14px 48px;
+      padding-left: max(14px, env(safe-area-inset-left));
+      padding-right: max(14px, env(safe-area-inset-right));
+      padding-bottom: max(48px, env(safe-area-inset-bottom));
+    }
+    h1 { font-size: 1.7rem; }
+    .lede { margin-bottom: 16px; font-size: 0.95rem; }
+    .tab { flex: 1; padding: 10px 8px; }
+    form { padding: 16px; gap: 14px; border-radius: 12px; }
+    .grid { gap: 14px; }
+    select, input[type="text"], input[type="number"], input[type="datetime-local"] { min-height: 48px; font-size: 16px; }
+    .seg span { min-height: 48px; line-height: 28px; }
+    .row { flex-direction: column; }
+    .row > button { width: 100%; min-height: 44px; }
+    .primary { min-height: 52px; font-size: 1.1rem; }
+    .out { margin-top: 18px; }
+    .card { padding: 18px; border-radius: 12px; }
+    .price { font-size: 2.3rem; }
+    dl { gap: 10px 14px; margin-top: 16px; }
+    footer { margin-top: 22px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Coin price tools</h1>
+  <p class="lede">Look up a coin price at any moment, or test what a trade would have earned between two times.</p>
+
+  <div class="tabs" role="tablist" aria-label="Tools">
+    <button type="button" class="tab" role="tab" id="tab-pc" aria-selected="true" aria-controls="panel-pc">Price Checker</button>
+    <button type="button" class="tab" role="tab" id="tab-bt" aria-selected="false" aria-controls="panel-bt" tabindex="-1">Trade Backtest</button>
+  </div>
+
+  <!-- Price Checker -->
+  <section id="panel-pc" role="tabpanel" aria-labelledby="tab-pc">
+    <p class="panel-intro">Pick a coin and a time to see its price then, plus the high, low and volume for that day.</p>
+    <form id="pcForm" novalidate>
+      <div class="fields" id="pcFields"></div>
+      <div class="field">
+        <label for="pcTime">Date and time (UTC+8)</label>
+        <div class="row">
+          <input type="datetime-local" id="pcTime" step="1" required>
+          <button type="button" class="ghost" id="pcNow">Now</button>
+        </div>
+      </div>
+      <button type="submit" class="primary" id="pcGo">Get price</button>
+    </form>
+    <section class="out" id="pcOut" aria-live="polite"></section>
+  </section>
+
+  <!-- Trade Backtest -->
+  <section id="panel-bt" role="tabpanel" aria-labelledby="tab-bt" hidden>
+    <p class="panel-intro">Choose a coin, buy or sell, and the times you opened and closed the trade. The profit or loss is worked out from the exchange prices at those two times.</p>
+    <form id="btForm" novalidate>
+      <div class="fields" id="btFields"></div>
+
+      <div class="field">
+        <span class="label" id="btActLabel">Action</span>
+        <div class="seg two" role="radiogroup" aria-labelledby="btActLabel">
+          <label><input type="radio" name="btAction" value="buy" checked><span>Buy (long)</span></label>
+          <label><input type="radio" name="btAction" value="sell"><span>Sell (short)</span></label>
+        </div>
+        <span class="hint">Buy earns when the price rises. Sell earns when the price falls.</span>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="btOpen">Open trade time (UTC+8)</label>
+          <input type="datetime-local" id="btOpen" step="1" required>
+        </div>
+        <div class="field">
+          <label for="btClose">Close trade time (UTC+8)</label>
+          <div class="row">
+            <input type="datetime-local" id="btClose" step="1" required>
+            <button type="button" class="ghost" id="btNow">Now</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="btAmount">Amount invested (<span id="btQuote1">USDT</span>)</label>
+          <input type="number" id="btAmount" value="1000" min="0" step="any" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label for="btLev">Leverage (×)</label>
+          <input type="number" id="btLev" value="1" min="1" max="1000" step="any" inputmode="decimal">
+          <span class="hint" id="btLevHint"></span>
+        </div>
+      </div>
+
+      <button type="submit" class="primary" id="btGo">Calculate profit or loss</button>
+    </form>
+    <section class="out" id="btOut" aria-live="polite"></section>
+  </section>
+
+  <footer>
+    Prices come straight from each exchange&rsquo;s public market data. The price at a time is the first trade of the candle that starts then: second-level on Binance spot, minute-level everywhere else. All times are UTC+8. Coinbase prices are in USD, the others in USDT, so they can differ slightly. Backtests leave out fees, funding costs and slippage.
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var COINS = ['BTC','ETH','BNB','SOL','XRP','DOGE','ADA','TRX','AVAX','LINK','TON','DOT','LTC','SUI','SHIB','PEPE','NEAR','APT','ARB','OP'];
+  var NAMES = { binance: 'Binance', okx: 'OKX', coinbase: 'Coinbase' };
+  var OFF = 8 * 3600000, DAY = 86400000;
+
+  /* ---------- time helpers (everything is UTC+8) ---------- */
+  function toInputValue(ms) { return new Date(ms + OFF).toISOString().slice(0, 19); }
+  function parseInput(v) {
+    if (!v) return NaN;
+    if (v.length === 16) v += ':00';
+    return Date.parse(v + 'Z') - OFF;
+  }
+  function fmtTime(ms) {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Etc/GMT-8', year: 'numeric', month: 'short', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).format(new Date(ms));
+  }
+  function fmtDay(ms) {
+    return new Intl.DateTimeFormat('en-GB', { timeZone: 'Etc/GMT-8', year: 'numeric', month: 'short', day: '2-digit' }).format(new Date(ms));
+  }
+  function fmtDur(ms) {
+    var s = Math.round(ms / 1000), d = Math.floor(s / 86400); s %= 86400;
+    var h = Math.floor(s / 3600); s %= 3600;
+    var m = Math.floor(s / 60); s %= 60;
+    var parts = [];
+    if (d) parts.push(d + 'd');
+    if (h) parts.push(h + 'h');
+    if (m) parts.push(m + 'm');
+    if (s || !parts.length) parts.push(s + 's');
+    return parts.join(' ');
+  }
+
+  /* ---------- number helpers ---------- */
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; });
+  }
+  function fmtNum(s) {
+    var parts = String(s).split('.');
+    var i = parts[0], f = (parts[1] || '').replace(/0+$/, '');
+    if (Math.abs(Number(s)) >= 1 && f.length < 2) f = f.padEnd(2, '0');
+    i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return f ? i + '.' + f : i;
+  }
+  function fmtVol(v) { return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+  function fmtMoney(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function signOf(n, digits) {
+    var r = Number(Math.abs(n).toFixed(digits));
+    return r === 0 ? 0 : (n > 0 ? 1 : -1);
+  }
+  function fmtSigned(n, digits) {
+    var sg = signOf(n, digits);
+    var body = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    return (sg > 0 ? '+' : sg < 0 ? '\u2212' : '') + body;
+  }
+  function cls(n, digits) { var sg = signOf(n, digits); return sg > 0 ? 'win' : sg < 0 ? 'loss' : ''; }
+  function cleanCoin(s) {
+    var c = String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (c.length > 4 && c.slice(-4) === 'USDT') c = c.slice(0, -4);
+    return c;
+  }
+
+  /* ---------- network ---------- */
+  function getJSON(url) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 6000);
+    return fetch(url, { signal: ctrl.signal }).then(function (r) {
+      return r.json().catch(function () { return null; }).then(function (body) {
+        clearTimeout(timer);
+        if (!r.ok) {
+          var e = new Error((body && (body.msg || body.retMsg)) || ('HTTP ' + r.status));
+          e.status = r.status; e.code = body && body.code;
+          throw e;
+        }
+        return body;
+      }, function () { clearTimeout(timer); throw new Error('NETWORK'); });
+    }, function () { clearTimeout(timer); throw new Error('NETWORK'); });
+  }
+  function tryBases(bases, path) {
+    var idx = 0;
+    function next(lastErr) {
+      if (idx >= bases.length) throw lastErr;
+      var b = bases[idx++];
+      return getJSON(b + path).catch(function (e) {
+        if (e.message === 'NETWORK' || e.status === 451 || e.status === 403) return next(e);
+        throw e;
+      });
+    }
+    return next(null);
+  }
+  function isSymbolError(e) { return e.code === -1121 || /invalid symbol/i.test(e.message || ''); }
+
+  function fromBinanceRow(r, gran) {
+    return { start: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5], gran: gran };
+  }
+
+  function binanceLookup(symbol, market, t) {
+    var spot = market === 'spot';
+    var bases = spot ? ['https://api.binance.com', 'https://data-api.binance.vision'] : ['https://fapi.binance.com'];
+    var path = spot ? '/api/v3/klines' : '/fapi/v1/klines';
+    var m = Math.floor(t / 60000) * 60000;
+    function minuteLookup() {
+      return tryBases(bases, path + '?symbol=' + symbol + '&interval=1m&startTime=' + m + '&limit=1').then(function (rows) {
+        return rows.length ? fromBinanceRow(rows[0], 'minute') : null;
+      });
+    }
+    if (!spot) return minuteLookup();
+    return tryBases(bases, path + '?symbol=' + symbol + '&interval=1s&startTime=' + t + '&limit=1').then(function (rows) {
+      if (rows.length && rows[0][0] - t < 60000) return fromBinanceRow(rows[0], 'second');
+      return minuteLookup();
+    }, function (e) {
+      if (isSymbolError(e)) throw e;
+      return minuteLookup();
+    });
+  }
+
+  function okxLookup(base, market, t) {
+    var m = Math.floor(t / 60000) * 60000;
+    var instId = base + '-USDT' + (market === 'spot' ? '' : '-SWAP');
+    var path = '/api/v5/market/history-candles?instId=' + instId + '&bar=1m&after=' + (m + 60000) + '&limit=1';
+    return tryBases(['https://www.okx.com', 'https://aws.okx.com'], path).then(function (body) {
+      if (body.code !== '0') { var e = new Error(body.msg || 'OKX error'); e.okx = true; throw e; }
+      var rows = body.data;
+      if (!rows || !rows.length) return null;
+      var r = rows[0];
+      if (Number(r[0]) < m) return null;
+      return { start: Number(r[0]), open: r[1], high: r[2], low: r[3], close: r[4], volume: market === 'spot' ? r[5] : r[6], gran: 'minute' };
+    });
+  }
+
+  function coinbaseLookup(base, t) {
+    var m = Math.floor(t / 60000) * 60000;
+    function iso(ms) { return new Date(ms).toISOString().replace('.000Z', 'Z'); }
+    function ns(n) { n = Number(n); return (n !== 0 && Math.abs(n) < 1e-6) ? n.toFixed(12) : String(n); }
+    var url = 'https://api.exchange.coinbase.com/products/' + base + '-USD/candles?granularity=60&start=' + iso(m) + '&end=' + iso(m + 60000);
+    return getJSON(url).then(function (rows) {
+      var hit = (rows || []).filter(function (r) { return r[0] * 1000 === m; })[0];
+      if (!hit) return null;
+      return { start: hit[0] * 1000, open: ns(hit[3]), high: ns(hit[2]), low: ns(hit[1]), close: ns(hit[4]), volume: hit[5], gran: 'minute' };
+    });
+  }
+
+  // Price at a moment, from whichever exchange is selected
+  function priceAt(c, t) {
+    if (c.exchange === 'binance') return binanceLookup(c.symbol, c.market, t);
+    if (c.exchange === 'okx') return okxLookup(c.base, c.market, t);
+    return coinbaseLookup(c.base, t);
+  }
+
+  // High, low and volume of the UTC+8 day, plus the close of the previous day (from hourly candles)
+  function dayLookup(exchange, symbol, market, t) {
+    var dayStart = Math.floor((t + OFF) / DAY) * DAY - OFF;
+    var dayEnd = dayStart + DAY;
+    function ns(n) { n = Number(n); return (n !== 0 && Math.abs(n) < 1e-6) ? n.toFixed(12) : String(n); }
+    function inDay(r) { return r.t >= dayStart && r.t < dayEnd; }
+    function inPrev(r) { return r.t >= dayStart - DAY && r.t < dayStart; }
+    function agg(all) {
+      var rows = all.filter(inDay), prev = all.filter(inPrev);
+      prev.sort(function (x, y) { return x.t - y.t; });
+      var out = { prevClose: prev.length ? prev[prev.length - 1].c : null };
+      if (!rows.length && out.prevClose == null) return null;
+      if (rows.length) {
+        rows.sort(function (x, y) { return x.t - y.t; });
+        var hi = rows[0], lo = rows[0], vol = 0;
+        rows.forEach(function (r) {
+          if (+r.h > +hi.h) hi = r;
+          if (+r.l < +lo.l) lo = r;
+          vol += Number(r.v);
+        });
+        out.high = hi.h; out.low = lo.l; out.volume = vol;
+      }
+      return out;
+    }
+    if (exchange === 'binance') {
+      var spot = market === 'spot';
+      var bases = spot ? ['https://api.binance.com', 'https://data-api.binance.vision'] : ['https://fapi.binance.com'];
+      var path = (spot ? '/api/v3/klines' : '/fapi/v1/klines') + '?symbol=' + symbol + '&interval=1h&startTime=' + (dayStart - DAY) + '&endTime=' + (dayEnd - 1) + '&limit=48';
+      return tryBases(bases, path).then(function (rows) {
+        return agg(rows.map(function (r) { return { t: r[0], o: r[1], h: r[2], l: r[3], c: r[4], v: r[5] }; }));
+      });
+    }
+    if (exchange === 'okx') {
+      var opath = '/api/v5/market/history-candles?instId=' + symbol + '&bar=1H&after=' + dayEnd + '&limit=48';
+      return tryBases(['https://www.okx.com', 'https://aws.okx.com'], opath).then(function (body) {
+        if (body.code !== '0') return null;
+        return agg((body.data || []).map(function (r) {
+          return { t: Number(r[0]), o: r[1], h: r[2], l: r[3], c: r[4], v: market === 'spot' ? r[5] : r[6] };
+        }));
+      });
+    }
+    function iso(ms) { return new Date(ms).toISOString().replace('.000Z', 'Z'); }
+    var url = 'https://api.exchange.coinbase.com/products/' + symbol + '/candles?granularity=3600&start=' + iso(dayStart - DAY) + '&end=' + iso(dayEnd);
+    return getJSON(url).then(function (rows) {
+      return agg((rows || []).map(function (r) {
+        return { t: r[0] * 1000, o: ns(r[3]), h: ns(r[2]), l: ns(r[1]), c: ns(r[4]), v: r[5] };
+      }));
+    });
+  }
+
+  /* ---------- shared form fields (exchange, market, coin) ---------- */
+  function commonHTML(p) {
+    return '' +
+      '<div class="field">' +
+        '<span class="label" id="' + p + 'ExLabel">Exchange</span>' +
+        '<div class="seg" role="radiogroup" aria-labelledby="' + p + 'ExLabel">' +
+          '<label><input type="radio" name="' + p + 'Ex" value="okx" checked><span>OKX</span></label>' +
+          '<label><input type="radio" name="' + p + 'Ex" value="coinbase"><span>Coinbase</span></label>' +
+          '<label><input type="radio" name="' + p + 'Ex" value="binance"><span>Binance</span></label>' +
+        '</div>' +
+        '<span class="hint" id="' + p + 'ExHint"></span>' +
+      '</div>' +
+      '<div class="grid">' +
+        '<div class="field"><label for="' + p + 'Market">Market</label>' +
+          '<select id="' + p + 'Market"><option value="spot">Spot</option><option value="perp">USDT perpetual futures</option></select></div>' +
+        '<div class="field"><label for="' + p + 'Coin">Coin</label><select id="' + p + 'Coin"></select></div>' +
+      '</div>' +
+      '<div class="field" id="' + p + 'CustomWrap" hidden>' +
+        '<label for="' + p + 'Custom">Coin symbol</label>' +
+        '<input type="text" id="' + p + 'Custom" placeholder="For example, WIF" autocomplete="off" autocapitalize="characters" spellcheck="false">' +
+      '</div>';
+  }
+
+  function setupCommon(p, onChange) {
+    $(p + 'Fields').innerHTML = commonHTML(p);
+    var coinSel = $(p + 'Coin');
+    COINS.forEach(function (c) { var o = document.createElement('option'); o.value = c; o.textContent = c; coinSel.appendChild(o); });
+    var other = document.createElement('option'); other.value = 'OTHER'; other.textContent = 'Other coin\u2026'; coinSel.appendChild(other);
+    coinSel.addEventListener('change', function () {
+      $(p + 'CustomWrap').hidden = coinSel.value !== 'OTHER';
+      if (coinSel.value === 'OTHER') $(p + 'Custom').focus();
+    });
+
+    function exchange() { return document.querySelector('input[name="' + p + 'Ex"]:checked').value; }
+    function sync() {
+      var ex = exchange();
+      var ms = $(p + 'Market');
+      if (ex === 'coinbase') { ms.value = 'spot'; ms.disabled = true; } else { ms.disabled = false; }
+      var hints = {
+        coinbase: 'Coinbase has spot markets only, priced in USD.',
+        binance: 'Binance is blocked in some countries, including Malaysia. If it fails, pick another exchange.',
+        okx: ''
+      };
+      $(p + 'ExHint').textContent = hints[ex] || '';
+      if (onChange) onChange();
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="' + p + 'Ex"]'), function (r) { r.addEventListener('change', sync); });
+    $(p + 'Market').addEventListener('change', function () { if (onChange) onChange(); });
+    sync();
+
+    return {
+      read: function () {
+        var ex = exchange();
+        var market = ex === 'coinbase' ? 'spot' : $(p + 'Market').value;
+        var base = coinSel.value === 'OTHER' ? cleanCoin($(p + 'Custom').value) : coinSel.value;
+        var symbol = ex === 'okx' ? base + '-USDT' + (market === 'perp' ? '-SWAP' : '')
+          : ex === 'coinbase' ? base + '-USD'
+          : base + 'USDT';
+        return { exchange: ex, exchangeName: NAMES[ex], market: market, base: base, symbol: symbol, quote: ex === 'coinbase' ? 'USD' : 'USDT' };
+      }
+    };
+  }
+
+  function explainError(e, c) {
+    var name = c.exchangeName;
+    if (e.message === 'NETWORK') {
+      return 'Could not reach ' + name + '. Your connection may be down, or ' + name + ' may be blocked on your network or in your country (a VPN can also interfere). Try one of the other exchanges above.';
+    }
+    var symbolErr = (c.exchange === 'binance' && isSymbolError(e)) || (c.exchange === 'okx' && e.okx) || (c.exchange === 'coinbase' && e.status === 404);
+    if (symbolErr) {
+      var msg = name + ' has no ' + c.symbol + ' pair' + (c.exchange === 'coinbase' ? '.' : ' on ' + (c.market === 'spot' ? 'spot' : 'USDT perpetual futures') + '.');
+      if (c.market === 'perp') msg += ' Some low-priced coins use a 1000\u00D7 symbol on perpetuals, such as 1000PEPE or 1000SHIB. Try that under \u201COther coin\u201D.';
+      else msg += ' Check the symbol, or try another exchange.';
+      if (c.exchange === 'okx' && e.message) msg += ' (OKX said: ' + e.message + ')';
+      return msg;
+    }
+    return name + ' returned an error: ' + (e.message || 'unknown error') + '.';
+  }
+
+  function showErr(outId, msg) { $(outId).innerHTML = '<p class="error" role="alert">' + esc(msg) + '</p>'; }
+  function setBusy(id, busy, label) { var b = $(id); b.disabled = busy; b.textContent = label; }
+  function noDataMsg(c, what) {
+    return 'No ' + c.symbol + ' data ' + what + ' on ' + c.exchangeName + '. The pair may not have been listed yet, or the time is too far back for this data source.';
+  }
+  // Notes about how a looked-up price relates to the requested time
+  function timeNotes(res, t, label) {
+    var notes = [];
+    var step = res.gran === 'second' ? 1000 : 60000;
+    var wanted = Math.floor(t / step) * step;
+    if (res.start > wanted) {
+      notes.push('No trades happened in that ' + res.gran + (label ? ' at the ' + label + ' time' : '') + ', so the next candle with data was used, starting ' + fmtTime(res.start) + '.');
+    }
+    return notes;
+  }
+
+  /* ---------- Price Checker ---------- */
+  var pc = setupCommon('pc');
+  $('pcTime').value = toInputValue(Date.now() - 60000);
+  $('pcNow').addEventListener('click', function () { $('pcTime').value = toInputValue(Date.now()); });
+
+  function showPrice(res, c, t, day) {
+    var dayStart = Math.floor((t + OFF) / DAY) * DAY - OFF;
+    var inProgress = dayStart + DAY > Date.now();
+    var d = day || {};
+    var notes = timeNotes(res, t, '');
+    if (res.gran === 'minute' && t % 60000 !== 0 && res.start <= Math.floor(t / 60000) * 60000) {
+      notes.push('This source only has minute-level data. The price is the first trade of the minute starting at ' + fmtTime(res.start) + '. The price at your exact second may differ slightly.');
+    }
+    if (!day) notes.push('The price above is correct, but the figures for the day could not be loaded.');
+    function v(x) { return x == null ? '\u2013' : esc(fmtNum(x)); }
+    $('pcOut').innerHTML =
+      '<div class="card">' +
+        '<p class="price">' + esc(fmtNum(res.open)) + '<small>' + esc(c.quote) + '</small></p>' +
+        '<p class="meta"><strong>' + esc(c.symbol) + '</strong> on ' + esc(c.exchangeName) + ' ' + (c.market === 'spot' ? 'spot' : 'perpetual') + '</p>' +
+        '<p class="meta">' + esc(fmtTime(res.start)) + ' (UTC+8)</p>' +
+        '<dl>' +
+          '<div><dt>Price at your time</dt><dd>' + esc(fmtNum(res.open)) + '</dd></div>' +
+          '<div><dt>Close of previous day (' + esc(fmtDay(dayStart - DAY)) + ')</dt><dd>' + v(d.prevClose) + '</dd></div>' +
+          '<div><dt>High of the day</dt><dd>' + v(d.high) + '</dd></div>' +
+          '<div><dt>Low of the day</dt><dd>' + v(d.low) + '</dd></div>' +
+          '<div><dt>Volume of the day (' + esc(c.base) + ')</dt><dd>' + (d.volume == null ? '\u2013' : esc(fmtVol(d.volume))) + '</dd></div>' +
+        '</dl>' +
+        '<p class="meta">Day figures cover ' + esc(fmtDay(dayStart)) + ', 00:00 to 24:00 (UTC+8)' + (inProgress ? '. The day is not over yet, so they run up to now.' : '.') + '</p>' +
+        notes.map(function (n) { return '<p class="note">' + esc(n) + '</p>'; }).join('') +
+      '</div>';
+  }
+
+  $('pcForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var c = pc.read();
+    var t = parseInput($('pcTime').value);
+    if (!c.base) { showErr('pcOut', 'Enter a coin symbol, for example WIF.'); return; }
+    if (isNaN(t)) { showErr('pcOut', 'Enter a date and time.'); return; }
+    if (t > Date.now()) { showErr('pcOut', 'That time is in the future. Pick a time that has already happened.'); return; }
+
+    setBusy('pcGo', true, 'Getting price\u2026');
+    $('pcOut').innerHTML = '';
+    priceAt(c, t).then(function (res) {
+      if (!res) { showErr('pcOut', noDataMsg(c, 'for that time')); return; }
+      return dayLookup(c.exchange, c.symbol, c.market, t).catch(function () { return null; }).then(function (day) {
+        showPrice(res, c, t, day);
+        $('pcOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }).catch(function (e) {
+      showErr('pcOut', explainError(e, c));
+    }).then(function () { setBusy('pcGo', false, 'Get price'); });
+  });
+
+  /* ---------- Trade Backtest ---------- */
+  function syncLeverage() {
+    var c = bt.read();
+    var lev = $('btLev');
+    $('btQuote1').textContent = c.quote;
+    if (c.market === 'spot') {
+      lev.value = 1; lev.disabled = true;
+      $('btLevHint').textContent = 'Spot trades have no leverage.';
+    } else {
+      lev.disabled = false;
+      $('btLevHint').textContent = '';
+    }
+  }
+  var bt = setupCommon('bt', function () { if (typeof bt !== 'undefined' && bt) syncLeverage(); });
+  syncLeverage();
+  $('btOpen').value = toInputValue(Date.now() - DAY);
+  $('btClose').value = toInputValue(Date.now() - 60000);
+  $('btNow').addEventListener('click', function () { $('btClose').value = toInputValue(Date.now()); });
+
+  function showBacktest(r1, r2, c, o) {
+    var dir = o.action === 'buy' ? 1 : -1;
+    var entry = Number(r1.open), exit = Number(r2.open);
+    var move = (exit - entry) / entry;           // price change from entry to exit
+    var ret = dir * move * o.lev;                // return on the amount invested
+    var pnl = o.amount * ret;                    // profit or loss in quote currency
+    var notional = o.amount * o.lev;
+    var notes = timeNotes(r1, o.t1, 'open').concat(timeNotes(r2, o.t2, 'close'));
+    if ((r1.gran === 'minute' && o.t1 % 60000 !== 0) || (r2.gran === 'minute' && o.t2 % 60000 !== 0)) {
+      notes.push('This source has minute-level data, so each price is the first trade of the minute that contains your time. Prices at the exact second may differ slightly.');
+    }
+    if (o.action === 'sell' && c.market === 'spot') {
+      notes.push('Spot markets cannot be shorted. This shows what a sell followed by a buy-back would earn, as on a futures market.');
+    }
+    if (ret <= -1) {
+      notes.push('This loss is at or above the amount invested. With leverage, the position would probably have been liquidated before the close. Liquidation is not simulated here.');
+    }
+    var retLabel = o.lev > 1 ? 'Return on amount (' + o.lev + '\u00D7 leverage)' : 'Return on amount';
+    $('btOut').innerHTML =
+      '<div class="card">' +
+        '<p class="price ' + cls(pnl, 2) + '">' + esc(fmtSigned(pnl, 2)) + '<small>' + esc(c.quote) + '</small><span class="pct">' + esc(fmtSigned(ret * 100, 2)) + '%</span></p>' +
+        '<p class="meta"><strong>' + (o.action === 'buy' ? 'Buy' : 'Sell') + ' ' + esc(c.symbol) + '</strong> on ' + esc(c.exchangeName) + ' ' + (c.market === 'spot' ? 'spot' : 'perpetual') + '</p>' +
+        '<p class="meta">Held for ' + esc(fmtDur(o.t2 - o.t1)) + '</p>' +
+        '<dl>' +
+          '<div><dt>Entry price</dt><dd>' + esc(fmtNum(r1.open)) + '<span class="sub">' + esc(fmtTime(r1.start)) + '</span></dd></div>' +
+          '<div><dt>Exit price</dt><dd>' + esc(fmtNum(r2.open)) + '<span class="sub">' + esc(fmtTime(r2.start)) + '</span></dd></div>' +
+          '<div><dt>Price change</dt><dd class="' + cls(move * 100, 2) + '">' + esc(fmtSigned(move * 100, 2)) + '%</dd></div>' +
+          '<div><dt>' + esc(retLabel) + '</dt><dd class="' + cls(ret, 4) + '">' + esc(fmtSigned(ret * 100, 2)) + '%</dd></div>' +
+          '<div><dt>Amount invested</dt><dd>' + esc(fmtMoney(o.amount)) + ' ' + esc(c.quote) + '</dd></div>' +
+          (o.lev !== 1 ? '<div><dt>Position size</dt><dd>' + esc(fmtMoney(notional)) + ' ' + esc(c.quote) + '</dd></div>' : '') +
+        '</dl>' +
+        notes.map(function (n) { return '<p class="note">' + esc(n) + '</p>'; }).join('') +
+      '</div>';
+  }
+
+  $('btForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var c = bt.read();
+    var action = document.querySelector('input[name="btAction"]:checked').value;
+    var t1 = parseInput($('btOpen').value), t2 = parseInput($('btClose').value);
+    var amount = parseFloat($('btAmount').value);
+    var lev = c.market === 'spot' ? 1 : parseFloat($('btLev').value);
+
+    if (!c.base) { showErr('btOut', 'Enter a coin symbol, for example WIF.'); return; }
+    if (isNaN(t1) || isNaN(t2)) { showErr('btOut', 'Enter both the open and close times.'); return; }
+    if (t2 <= t1) { showErr('btOut', 'The close time must be after the open time.'); return; }
+    if (t2 > Date.now()) { showErr('btOut', 'The close time is in the future. Pick a time that has already happened.'); return; }
+    if (!(amount > 0)) { showErr('btOut', 'Enter an amount invested greater than zero.'); return; }
+    if (!(lev >= 1 && lev <= 1000)) { showErr('btOut', 'Leverage must be between 1 and 1000.'); return; }
+
+    setBusy('btGo', true, 'Calculating\u2026');
+    $('btOut').innerHTML = '';
+    Promise.all([priceAt(c, t1), priceAt(c, t2)]).then(function (rs) {
+      if (!rs[0]) { showErr('btOut', noDataMsg(c, 'at the open time')); return; }
+      if (!rs[1]) { showErr('btOut', noDataMsg(c, 'at the close time')); return; }
+      showBacktest(rs[0], rs[1], c, { action: action, t1: t1, t2: t2, amount: amount, lev: lev });
+      $('btOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }).catch(function (e) {
+      showErr('btOut', explainError(e, c));
+    }).then(function () { setBusy('btGo', false, 'Calculate profit or loss'); });
+  });
+
+  /* ---------- tabs ---------- */
+  var tabs = [$('tab-pc'), $('tab-bt')], panels = [$('panel-pc'), $('panel-bt')];
+  function selectTab(i, focus) {
+    tabs.forEach(function (t, j) {
+      var on = i === j;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      panels[j].hidden = !on;
+    });
+    if (focus) tabs[i].focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { selectTab(i, false); });
+    t.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
+        ev.preventDefault();
+        selectTab((i + (ev.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length, true);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
